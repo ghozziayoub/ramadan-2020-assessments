@@ -1,7 +1,16 @@
 var VideoRequest = require('./../models/video-requests.model');
+const User = require('./../models/user.model');
 
 module.exports = {
-  createRequest: (vidRequestData) => {
+  createRequest: async (vidRequestData) => {
+    const authorId = vidRequestData.author_id;
+
+    if (authorId) {
+      const userObj = await User.findOne({ _id: authorId });
+      vidRequestData.author_name = userObj.author_name;
+      vidRequestData.author_email = userObj.author_email;
+    }
+
     let newRequest = new VideoRequest(vidRequestData);
     return newRequest.save();
   },
@@ -11,9 +20,12 @@ module.exports = {
   },
 
   searchRequests: (topic) => {
-    return VideoRequest.find({ topic_title: topic })
+
+    return VideoRequest.find({
+      topic_title: { $regex: topic, $options: 'i' }
+    })
       .sort({ addedAt: '-1' })
-      .limit(top);
+
   },
 
   getRequestById: (id) => {
@@ -42,7 +54,8 @@ module.exports = {
           [vote_type]: ++oldRequest.votes[vote_type],
           [other_type]: oldRequest.votes[other_type],
         },
-      }
+      },
+      { new: true }
     );
   },
 
